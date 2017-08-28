@@ -26,7 +26,7 @@ setup(
     download_url="https://github.com/TsarFox/hypodermic",
     packages=["hypodermic"],
     include_package_data=True,
-    install_requires=["python-ptrace"],
+    install_requires=[],
     extras_require={},
     tests_require=[],
     entry_points={"console_scripts": ["hypodermic = hypodermic.main:main"]},
