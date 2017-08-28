@@ -34,6 +34,18 @@ instead maps the Linux runtime linker into memory to make use of its existing
 GOT/PLT setup functionality.
 
 
+## Important Resources
+
+* [Understanding Linux ELF RTLD internals][4]
+* [Runtime Process Infection][5]
+* [ELF Program Header][6]
+* [Dynamic Loader Operation][7]
+
+
 [1]: https://github.com/gaffe23/linux-inject
 [2]: https://github.com/korcankaraokcu/PINCE
 [3]: https://www.gnu.org/licenses/gpl.html
+[4]: http://s.eresi-project.org/inc/articles/elf-rtld.txt
+[5]: http://phrack.org/issues/59/8.html
+[6]: http://www.sco.com/developers/gabi/latest/ch5.pheader.html
+[7]: https://sourceware.org/glibc/wiki/DynamicLoader
