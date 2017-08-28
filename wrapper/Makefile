@@ -8,5 +8,5 @@ LDFLAGS += $(USER_LDFLAGS)
 
 all: libptracew.so
 
-libtestw.so: ptrace.c
+libptracew.so: ptrace.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)

@@ -16,9 +16,42 @@
    along with Hypodermic. If not, see <http://www.gnu.org/licenses/>. */
 
 #include <sys/ptrace.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 
 #include <stddef.h>
+#include <unistd.h>
+
+
+static void run_target(const char *path) {
+    if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) < 0) {
+        return;
+    }
+
+    execl(path, path, 0);
+}
+
+
+int new_proc(const char *path) {
+    int   wait_stat;
+    pid_t pid;
+
+    if (path == NULL) {
+        return -1;
+    }
+
+    pid = fork();
+
+    if (pid == 0) {
+        run_target(path);
+    } else if (pid > 0) {
+        wait(&wait_stat);
+    } else {
+        return -1;
+    }
+
+    return pid;
+}
 
 
 int attach(int pid) {

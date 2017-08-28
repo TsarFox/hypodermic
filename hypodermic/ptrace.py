@@ -29,29 +29,42 @@ class Process(object):
         object.
 
     Args:
-        pid (int): The pid of the process to attach to.
+        pid (:obj:`int`, optional): The pid of the process to attach to.
+            Defaults to 0, which means that it will not be used.
+        path (:obj:`str`, optional): The path of the binary to run.
+            Defaults to "", which will be used if no pid is specified.
 
     Raises:
         TypeError: If the pid argument is not an int.
         OSError: If the pid cannot be attached to.
     """
 
-    def __init__(self, pid: int):
+    def __init__(self, pid=0, path=""):
         if not isinstance(pid, int):
             raise TypeError("pid argument must be an int")
+        elif not isinstance(path, str):
+            raise TypeError("path argument must be a string")
         self._load_ffi_methods()
 
-        if self._attach(ctypes.c_int(pid)):
-            raise OSError("Could not attach to pid {}".format(pid))
-        self.pid = pid
+        if pid != 0:
+            self._is_parent = False
+            if self._attach(ctypes.c_int(pid)):
+                raise OSError("Could not attach to pid {}".format(pid))
+        else:
+            self._is_parent = True
+            self.pid = self._new_proc(ctypes.c_char_p(path.encode()))
+            if self.pid < 0:
+                raise OSError("Could not create process {}".format(path))
+
 
     def __del__(self):
-        if hasattr(self, "pid"):
+        if hasattr(self, "_is_parent") and not self._is_parent:
             self.detach()
 
     def _load_ffi_methods(self):
         # FIXME: How are we going to deal with the path?
         self._so = ctypes.cdll.LoadLibrary("/tmp/libptracew.so")
+        self._new_proc = self._so.new_proc
         self._attach = self._so.attach
         self._detach = self._so.detach
         self._cont = self._so.cont
@@ -62,7 +75,7 @@ class Process(object):
         Raises:
             OSError: If the process cannot be detached from.
         """
-        if self._detach(ctypes.c_int(self.pid)):
+        if not self._is_parent and self._detach(ctypes.c_int(self.pid)):
             raise OSError("Could not detach from pid {}".format(self.pid))
 
     def cont(self):
