@@ -6,7 +6,7 @@ CFLAGS += $(USER_CFLAGS)
 LDFLAGS = -shared
 LDFLAGS += $(USER_LDFLAGS)
 
-all: libptracew.so
+all: libhypodermicw.so
 
-libptracew.so: ptrace.c
+libhypodermicw.so: ptrace.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)

@@ -1,4 +1,6 @@
-/* Copyright (C) 2017 Jakob Kreuze, All Rights Reserved.
+/* ptrace.c - Wrappers for the ptrace system call.
+
+   Copyright (C) 2017 Jakob Kreuze, All Rights Reserved.
 
    This file is part of Hypodermic.
 

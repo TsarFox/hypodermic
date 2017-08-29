@@ -10,4 +10,4 @@ dist/
 *.egg-info
 *.pyc
 *.egg
-libptracew.so
+libhypodermicw.so

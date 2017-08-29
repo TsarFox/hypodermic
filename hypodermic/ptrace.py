@@ -15,28 +15,31 @@
 # You should have received a copy of the GNU General Public License along
 # with Hypodermic. If not, see <http://www.gnu.org/licenses/>.
 
-"""Wrapper for the ptrace system call, since python-ptrace sucks."""
+"""ctypes wrapper for ptrace."""
 
 import ctypes
 
 
-# TODO: Instantiate from binary path, as well.
 class Process(object):
     """Process attached via ptrace.
 
     Note:
         The process is implicitly detached from upon destruction of this
-        object.
+        object, if appropriate.
 
     Args:
         pid (:obj:`int`, optional): The pid of the process to attach to.
-            Defaults to 0, which means that it will not be used.
+            Defaults to 0, which means that the argument will not be
+            used.
         path (:obj:`str`, optional): The path of the binary to run.
-            Defaults to "", which will be used if no pid is specified.
+            Defaults to "", which will as the target if a pid is not
+            specified, either.
 
     Raises:
-        TypeError: If the pid argument is not an int.
-        OSError: If the pid cannot be attached to.
+        TypeError: If the pid argument is not an int, or if the path
+            argument is not a string.
+        OSError: If the pid cannot be attached to, or if the process
+            could not be created for the given binary.
     """
 
     def __init__(self, pid=0, path=""):
@@ -56,14 +59,12 @@ class Process(object):
             if self.pid < 0:
                 raise OSError("Could not create process {}".format(path))
 
-
     def __del__(self):
         if hasattr(self, "_is_parent") and not self._is_parent:
             self.detach()
 
     def _load_ffi_methods(self):
-        # FIXME: How are we going to deal with the path?
-        self._so = ctypes.cdll.LoadLibrary("/tmp/libptracew.so")
+        self._so = ctypes.cdll.LoadLibrary("/tmp/libhypodermicw.so")
         self._new_proc = self._so.new_proc
         self._attach = self._so.attach
         self._detach = self._so.detach
