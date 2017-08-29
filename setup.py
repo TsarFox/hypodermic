@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
 try:
-    from setuptools import setup
+    from setuptools import setup, Extension
 except ImportError:
-    from distutils.core import setup
+    from distutils.core import setup, Extension
+from glob import glob
+
 from hypodermic import __version__
 
+lib = Extension("libhypodermicw", sources = ["wrapper/ptrace.c"])
 
 def long_description():
     with open("README.md") as description:
@@ -26,6 +29,7 @@ setup(
     download_url="https://github.com/TsarFox/hypodermic",
     packages=["hypodermic"],
     include_package_data=True,
+    ext_modules=[lib],
     install_requires=[],
     extras_require={},
     tests_require=[],

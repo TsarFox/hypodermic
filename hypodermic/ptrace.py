@@ -18,6 +18,7 @@
 """ctypes wrapper for ptrace."""
 
 import ctypes
+import os.path
 
 
 class Process(object):
@@ -38,8 +39,9 @@ class Process(object):
     Raises:
         TypeError: If the pid argument is not an int, or if the path
             argument is not a string.
-        OSError: If the pid cannot be attached to, or if the process
-            could not be created for the given binary.
+        OSError: If the pid cannot be attached to, if the process could
+            not be created for the given binary, or if any wrapper
+            libraries could not be loaded.
     """
 
     def __init__(self, pid=0, path=""):
@@ -64,7 +66,17 @@ class Process(object):
             self.detach()
 
     def _load_ffi_methods(self):
-        self._so = ctypes.cdll.LoadLibrary("/tmp/libhypodermicw.so")
+        # setuptools/cython hack.
+        script_path = os.path.abspath(os.path.dirname(__file__))
+
+        for filename in os.listdir(os.path.join(script_path, "..")):
+            if filename.startswith("libhypodermicw"):
+                lib_path = os.path.join(script_path, "..", filename)
+                break
+        else:
+            raise OSError("Could not find wrapper library.")
+
+        self._so = ctypes.cdll.LoadLibrary(lib_path)
         self._new_proc = self._so.new_proc
         self._attach = self._so.attach
         self._detach = self._so.detach

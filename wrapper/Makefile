@@ -6,7 +6,17 @@ CFLAGS += $(USER_CFLAGS)
 LDFLAGS = -shared
 LDFLAGS += $(USER_LDFLAGS)
 
+BIN = libhypodermicw.so
+
 all: libhypodermicw.so
 
-libhypodermicw.so: ptrace.c
+$(BIN): ptrace.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	ln -s $@ ../$@
+
+
+clean:
+	rm -f $(BIN)
+	rm -f ../$(BIN)
+
+.PHONY: all clean
