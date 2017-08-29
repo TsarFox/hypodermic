@@ -12,7 +12,7 @@ all: libhypodermicw.so
 
 $(BIN): ptrace.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-	ln -s $@ ../$@
+	ln -rs $@ ../ # GNU extension
 
 
 clean:

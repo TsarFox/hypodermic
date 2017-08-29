@@ -20,6 +20,8 @@
 import ctypes
 import os.path
 
+from hypodermic.memory import maps
+
 
 class Process(object):
     """Process attached via ptrace.
@@ -99,3 +101,7 @@ class Process(object):
         """
         if self._cont(ctypes.c_int(self.pid)):
             raise OSError("Could not continue")
+
+    @property
+    def maps(self):
+        return maps(self.pid)

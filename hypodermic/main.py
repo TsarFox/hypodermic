@@ -20,9 +20,7 @@
 import argparse
 import sys
 import textwrap
-import pprint #
 
-from hypodermic.memory import maps
 from hypodermic.ptrace import Process
 
 
@@ -43,12 +41,26 @@ class CustomHelp(argparse.HelpFormatter):
         return both.add_usage(usage, actions, groups, prefix)
 
 
+def _alert(quiet: bool):
+    def alert(*args):
+        if not quiet:
+            print(*args)
+    return alert
+
+
 def main():
     parser = argparse.ArgumentParser(
         add_help=False,
         formatter_class=CustomHelp,
         usage="%(prog)s [-a pid] [-c path] [options]",
         description="Don't share needles, brah!"
+    )
+    parser._optionals.title = "Optional Arguments"
+
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        help="Suppress everything but critical output"
     )
 
     doc = parser.add_argument_group("Documentation")
@@ -82,12 +94,15 @@ def main():
     )
 
     args = parser.parse_args()
+    alert = _alert(args.quiet)
 
     if args.attach is None and args.create is None:
         print("No action specified. Quitting!")
         sys.exit(1)
 
     if args.create:
+        alert("Creating process at path {}".format(args.create))
         p = Process(path=args.create)
     else:
+        alert("Attaching to process with pid {}".format(args.attach))
         p = Process(pid=args.attach)
