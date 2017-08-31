@@ -55,8 +55,13 @@ def main():
         usage="%(prog)s [-a pid] [-c path] [options]",
         description="Don't share needles, brah!"
     )
+    parser._positionals.title = "Positional Arguments"
     parser._optionals.title = "Optional Arguments"
 
+    parser.add_argument(
+        "target",
+        help="The target shared object to inject."
+    )
     parser.add_argument(
         "-q",
         "--quiet",

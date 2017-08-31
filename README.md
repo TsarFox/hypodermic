@@ -31,7 +31,8 @@ memory is far more complicated than calling mmap(2) on the file.
 
 The second iteration also involves injecting code into the inferior process, but
 instead maps the Linux runtime linker into memory to make use of its existing
-GOT/PLT setup functionality.
+GOT/PLT setup functionality. This involves injecting auxiliary vectors onto the
+stack in an attempt to trick the RTLD.
 
 
 ## Important Resources
@@ -40,6 +41,7 @@ GOT/PLT setup functionality.
 * [Runtime Process Infection][5]
 * [ELF Program Header][6]
 * [Dynamic Loader Operation][7]
+* [About ELF Auxiliary Vectors][8]
 
 
 [1]: https://github.com/gaffe23/linux-inject
@@ -49,3 +51,4 @@ GOT/PLT setup functionality.
 [5]: http://phrack.org/issues/59/8.html
 [6]: http://www.sco.com/developers/gabi/latest/ch5.pheader.html
 [7]: https://sourceware.org/glibc/wiki/DynamicLoader
+[8]: http://articles.manugarg.com/aboutelfauxiliaryvectors

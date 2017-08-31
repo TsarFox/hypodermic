@@ -19,8 +19,9 @@
 
 import ctypes
 import os.path
+import re
 
-from hypodermic.memory import maps
+from hypodermic.memory import Region, maps
 
 
 class Process(object):
@@ -103,5 +104,26 @@ class Process(object):
             raise OSError("Could not continue")
 
     @property
-    def maps(self):
+    def maps(self) -> list:
+        """Obtain the process' memory map.
+
+        Returns:
+            A list of Region objects.
+        """
         return maps(self.pid)
+
+    # FIXME: This approach does not work outside of seeing if the
+    # process has an RTLD page. The reality is that the RTLD is
+    # broken up into independent several pages.
+    @property
+    def rtld(self) -> Region:
+        """Obtain the region of memory for the process' RTLD, if it
+           exists.
+
+        Returns:
+            The Region object belonging to the RTLD, or None if no
+            RTLD was found.
+        """
+        for region in self.maps:
+            if re.search(r"ld.+\.so", region.path):
+                return region
