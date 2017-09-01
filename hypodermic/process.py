@@ -112,12 +112,9 @@ class Process(object):
         """
         return maps(self.pid)
 
-    # FIXME: This approach does not work outside of seeing if the
-    # process has an RTLD page. The reality is that the RTLD is
-    # broken up into independent several pages.
     @property
     def rtld(self) -> Region:
-        """Obtain the region of memory for the process' RTLD, if it
+        """Obtain the base region of memory for the process' RTLD, if it
            exists.
 
         Returns:
@@ -125,5 +122,5 @@ class Process(object):
             RTLD was found.
         """
         for region in self.maps:
-            if re.search(r"ld.+\.so", region.path):
+            if re.search(r"ld.+\.so", region.path) and region.off == 0:
                 return region
