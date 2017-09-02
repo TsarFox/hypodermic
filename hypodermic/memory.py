@@ -42,7 +42,7 @@ def parse_device(line: str) -> Device:
        object.
 
     Args:
-        line(str): The line to parse.
+        line (str): The line to parse.
 
     Returns:
         The parsed Device object.
@@ -56,7 +56,7 @@ def parse_perms(line: str) -> Perms:
        object.
 
     Args:
-        line(str): The line to parse.
+        line (str): The line to parse.
 
     Returns:
         The parsed Perms object.
@@ -69,7 +69,7 @@ def parse_region(line: str) -> Region:
        object.
 
     Args:
-        line(str): The line to parse.
+        line (str): The line to parse.
 
     Returns:
         The parsed Region object.
@@ -90,7 +90,7 @@ def maps(pid: int) -> list:
 
     Args:
         pid (int): The pid of the process to get memory mapping
-        information for.
+            information for.
 
     Raises:
         TypeError: If the pid argument is not an int.

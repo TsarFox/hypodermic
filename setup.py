@@ -30,7 +30,7 @@ setup(
     packages=["hypodermic"],
     include_package_data=True,
     ext_modules=[lib],
-    install_requires=[],
+    install_requires=["pyelftools"],
     extras_require={},
     tests_require=[],
     entry_points={"console_scripts": ["hypodermic = hypodermic.main:main"]},
