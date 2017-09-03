@@ -81,6 +81,18 @@ int cont(int pid) {
         return -1;
     }
 
+    waitpid(pid, &s, WNOHANG);
+    return 0;
+}
+
+
+int step(int pid) {
+    int s;
+
+    if ((ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL)) < 0) {
+        return -1;
+    }
+
     while (!WIFSTOPPED(s)) {
         waitpid(pid, &s, WNOHANG);
     }
@@ -108,6 +120,16 @@ unsigned long long getreg(int pid, int idx) {
 
     return ((unsigned long long *) &regs)[idx];
 }
+
+void setreg(int pid, int idx, unsigned long long value) {
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+    ((unsigned long long *) &regs)[idx] = value;
+
+    ptrace(PTRACE_SETREGS, pid, NULL, &regs);
+}
 #else
 unsigned long getreg(int pid, int idx) {
     struct user_regs_struct regs;
@@ -115,5 +137,15 @@ unsigned long getreg(int pid, int idx) {
     ptrace(PTRACE_GETREGS, pid, NULL, &regs);
 
     return ((unsigned long *) &regs)[idx];
+}
+
+void setreg(int pid, int idx, unsigned long value) {
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+    ((unsigned long *) &regs)[idx] = value;
+
+    ptrace(PTRACE_SETREGS, pid, NULL, &regs);
 }
 #endif

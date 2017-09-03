@@ -21,11 +21,9 @@ import ctypes
 import os.path
 import re
 
-from elftools.elf.elffile import ELFFile
-
 from hypodermic.memory import Region, maps
 
-AMD64_INDICES = {
+_AMD64_INDICES = {
     "r15": 0,
     "r14": 1,
     "r13": 2,
@@ -55,7 +53,7 @@ AMD64_INDICES = {
     "gs": 26
 }
 
-I386_INDICES = {
+_I386_INDICES = {
     "ebx": 0,
     "ecx": 1,
     "edx": 2,
@@ -136,7 +134,9 @@ class Process(object):
         self._attach = self._so.attach
         self._detach = self._so.detach
         self._cont = self._so.cont
+        self._step = self._so.step
         self._isamd64 = self._so.is_amd64
+        self._setreg = self._so.setreg
         self._getreg = self._so.getreg
         self._getreg.restype = ctypes.c_ulonglong
 
@@ -156,6 +156,15 @@ class Process(object):
             OSError: If the process cannot be continued.
         """
         if self._cont(ctypes.c_int(self.pid)):
+            raise OSError("Could not continue")
+
+    def single_step(self):
+        """Execute a single instruction.
+
+        Raises:
+            OSError: If the process cannot be put into single step mode.
+        """
+        if self._step(ctypes.c_int(self.pid)):
             raise OSError("Could not continue")
 
     def write_bytes(self, address: int, src: bytes) -> int:
@@ -210,23 +219,45 @@ class Process(object):
         """Returns the value of the given register.
 
         Note:
-            Registers are tied to the host processor, not the target
-            processor. For example, a 32-bit ELF will still have 64-bit
-            registers on 64-bit Linux.
+            Registers names are tied to the host processor, not the
+            target processor. For example, a 32-bit ELF will still have
+            64-bit registers on 64-bit Linux. It would be wise to query
+            the `arch` property of the Process object.
 
         Args:
             reg (str): The register to inspect. (e.g. "rax")
 
         Returns:
             An integer representing the value of the register.
-
         """
-        regs = AMD64_INDICES if self._isamd64 else I386_INDICES
+        regs = _AMD64_INDICES if self._isamd64 else _I386_INDICES
 
         if reg not in regs:
             raise ValueError("{} is not a valid register".format(reg))
 
         return self._getreg(self.pid, regs.get(reg))
+
+    def set_register(self, reg: str, val: int):
+        """Sets the value of the given register.
+
+        Note:
+            Registers names are tied to the host processor, not the
+            target processor. For example, a 32-bit ELF will still have
+            64-bit registers on 64-bit Linux. It would be wise to query
+            the `arch` property of the Process object.
+
+        Args:
+            reg (str): The register to modify. (e.g. "rax")
+            val (int): The new value for the register.
+        """
+        regs = _AMD64_INDICES if self._isamd64 else _I386_INDICES
+
+        if reg not in regs:
+            raise ValueError("{} is not a valid register".format(reg))
+
+        if self._isamd64:
+            return self._setreg(self.pid, regs.get(reg), ctypes.c_ulonglong(val))
+        return self._setreg(self.pid, regs.get(reg), ctypes.c_ulong(val))
 
     @property
     def arch(self) -> str:
@@ -235,8 +266,8 @@ class Process(object):
         Note:
             The architecture of the host platform is not necessarily
             the architecture of the target executable. However, this
-            value will accurately represent how registers should be
-            addressed.
+            value will accurately represent which registers are
+            available.
 
         Returns:
             A string representing the host processor. As of now, only
