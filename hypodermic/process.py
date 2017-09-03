@@ -136,10 +136,9 @@ class Process(object):
         self._attach = self._so.attach
         self._detach = self._so.detach
         self._cont = self._so.cont
-        self._getreg32 = self._so.getreg32
-        self._getreg32.restype = ctypes.c_ulong
-        self._getreg64 = self._so.getreg64
-        self._getreg64.restype = ctypes.c_ulonglong
+        self._isamd64 = self._so.is_amd64
+        self._getreg = self._so.getreg
+        self._getreg.restype = ctypes.c_ulonglong
 
     def detach(self):
         """Explicitly detaches from the process.
@@ -210,25 +209,40 @@ class Process(object):
     def get_register(self, reg: str) -> int:
         """Returns the value of the given register.
 
+        Note:
+            Registers are tied to the host processor, not the target
+            processor. For example, a 32-bit ELF will still have 64-bit
+            registers on 64-bit Linux.
+
         Args:
             reg (str): The register to inspect. (e.g. "rax")
 
         Returns:
             An integer representing the value of the register.
+
         """
-        regs = AMD64_INDICES if self.arch == "x64" else I386_INDICES
+        regs = AMD64_INDICES if self._isamd64 else I386_INDICES
 
         if reg not in regs:
             raise ValueError("{} is not a valid register".format(reg))
 
-        if self.arch == "x64":
-            return self._getreg64(self.pid, regs.get(reg))
-        return self._getreg32(self.pid, regs.get(reg))
+        return self._getreg(self.pid, regs.get(reg))
 
     @property
     def arch(self) -> str:
-        with open("/proc/{}/exe".format(self.pid), "rb") as elf:
-            return ELFFile(elf).get_machine_arch()
+        """Returns the architecture of the host processor.
+
+        Note:
+            The architecture of the host platform is not necessarily
+            the architecture of the target executable. However, this
+            value will accurately represent how registers should be
+            addressed.
+
+        Returns:
+            A string representing the host processor. As of now, only
+            "x64" and "x86" are supported.
+        """
+        return "x64" if self._isamd64 else "x86"
 
     @property
     def maps(self) -> list:
