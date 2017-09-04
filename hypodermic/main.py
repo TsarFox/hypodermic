@@ -108,26 +108,8 @@ def main():
     if args.create:
         alert("Creating process at path '{}'...".format(args.create))
         p = Process(path=args.create)
-
-        shellcode = b"\x48\xc7\xc0\x01\x00\x00\x00\x48\xc7\xc7\x01\x00" + \
-                    b"\x00\x00\x48\xc7\xc2\x29\x00\x00\x00\x48\x8d\x35" + \
-                    b"\x00\x00\x00\x00\x48\x81\xc6\x0d\x00\x00\x00\x0f" + \
-                    b"\x05\x90\x90\x90\xcc\x61\x6d\x64\x36\x34\x20\x4c" + \
-                    b"\x69\x6e\x75\x78\x20\x73\x79\x73\x5f\x77\x72\x69" + \
-                    b"\x74\x65\x20\x73\x68\x65\x6c\x6c\x63\x6f\x64\x65" + \
-                    b"\x20\x62\x79\x20\x4a\x61\x6b\x6f\x62\x0a"
-
-        old_rip = p.get_register("rip")
-        alert("%rip at {}".format(hex(old_rip)))
-        old_code = p.read_bytes(old_rip, len(shellcode))
-        p.write_bytes(old_rip, shellcode)
-        while p.read_bytes(p.get_register("rip"), 1) != b'\xcc':
-            p.single_step()
-        alert("Hit breakpoint!")
-        p.write_bytes(old_rip, old_code)
-        p.set_register("rip", old_rip)
-        alert("%rip reset to {}".format(hex(p.get_register("rip"))))
         p.continue_until_haulted()
     else:
         alert("Attaching to process with pid {}...".format(args.attach))
         p = Process(pid=args.attach)
+        p.continue_until_haulted()

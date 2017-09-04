@@ -22,6 +22,7 @@ import os.path
 import re
 
 from hypodermic.memory import Region, maps
+from hypodermic.shellcode import assemble
 
 _AMD64_INDICES = {
     "r15": 0,
@@ -53,6 +54,23 @@ _AMD64_INDICES = {
     "gs": 26
 }
 
+_AMD64_REGS = [
+    "rax",
+    "rbx",
+    "rcx",
+    "rdx",
+    "rsi",
+    "rdi",
+    "r8",
+    "r9",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+]
+
 _I386_INDICES = {
     "ebx": 0,
     "ecx": 1,
@@ -72,6 +90,15 @@ _I386_INDICES = {
     "esp": 15,
     "xss": 16
 }
+
+_I386_REGS = [
+    "eax",
+    "ebx",
+    "ecx",
+    "edx",
+    "esi",
+    "edi",
+]
 
 
 class Process(object):
@@ -258,6 +285,58 @@ class Process(object):
         if self._isamd64:
             return self._setreg(self.pid, regs.get(reg), ctypes.c_ulonglong(val))
         return self._setreg(self.pid, regs.get(reg), ctypes.c_ulong(val))
+
+    def _run_code_32(self, code: bytes, preserve: list):
+        reg_order = [reg for reg in _I386_REGS if reg not in preserve]
+        push = assemble("".join("pushl %{};".format(reg) for reg in reg_order), "i386")
+        pop = assemble("".join("popl %{};".format(reg) for reg in reversed(reg_order)), "i386")
+        bp = assemble("nop; nop; int3;", "i386")
+        payload = push + code + pop + bp
+
+        old_eip = self.get_register("eip")
+        old_code = self.read_bytes(old_eip, len(payload))
+        self.write_bytes(old_eip, payload)
+        while self.read_bytes(self.get_register("eip"), 1) != b"\xcc":
+            self.single_step()
+        self.write_bytes(old_eip, old_code)
+        self.set_register("eip", old_eip)
+
+    def _run_code_64(self, code: bytes, preserve: list):
+        reg_order = [reg for reg in _AMD64_REGS if reg not in preserve]
+        push = assemble("".join("pushq %{};".format(reg) for reg in reg_order))
+        pop = assemble("".join("popq %{};".format(reg) for reg in reversed(reg_order)))
+        bp = assemble("nop; nop; int3;")
+        payload = push + code + pop + bp
+
+        old_rip = self.get_register("rip")
+        old_code = self.read_bytes(old_rip, len(payload))
+        self.write_bytes(old_rip, payload)
+        while self.read_bytes(self.get_register("rip"), 1) != b"\xcc":
+            self.single_step()
+        self.write_bytes(old_rip, old_code)
+        self.set_register("rip", old_rip)
+
+    def run_code(self, code: bytes, preserve=[]) -> tuple:
+        """Executes code on the inferior.
+
+        Args:
+            code (:obj:`bytes`): The code to execute.
+            preserve (:obj:`list`, optional): Registers that should be
+                allowed to be clobbered.
+
+        Returns:
+            A pair of lists, the first containing the values of
+            preserved registers before the code was executed, and the
+            second containing the values of preserved registers after
+            the code was executed.
+        """
+        before = [self.get_register(reg) for reg in preserve]
+        if self.arch == "x64":
+            self._run_code_64(code, preserve)
+        else:
+            self._run_code_32(code, preserve)
+        after = [self.get_register(reg) for reg in preserve]
+        return before, after
 
     @property
     def arch(self) -> str:
