@@ -33,9 +33,10 @@ routines. This did not work, as the process of loading an ELF library into
 memory is far more complicated than calling mmap(2) on the file.
 
 The second iteration also involves injecting code into the inferior process, but
-instead maps the Linux runtime linker into memory to make use of its existing
-GOT/PLT setup functionality. This involves injecting auxiliary vectors onto the
-stack in an attempt to trick the RTLD.
+instead maps the Linux runtime linker into memory. This is difficult, as it
+means mapping it the way the kernel would. This involves injecting auxiliary
+vectors onto the stack in an attempt to trick it into loading the desired
+libraries.
 
 
 ## Important Resources

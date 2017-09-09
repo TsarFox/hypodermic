@@ -74,8 +74,91 @@ def open_shellcode(path: str, flags=0, arch="amd64") -> bytes:
               "        movl $0x05,   %eax;" \
               "        call $. + 5;" \
               "        popl %ebx;" \
-              "        subl $. - 4 - __path, %ebx;"
+              "        subl $. - 4 - __path, %ebx;" \
               "        movl ${},     %ecx;" \
               "        movl $0x00,   %edx;" \
               "        int $0x80;".format(path, flags)
+    return assemble(asm, arch)
+
+
+def close_shellcode(fd: int, arch="amd64") -> bytes:
+    """Generates shellcode to close a file descriptor.
+
+    Args:
+        fd (int): The file descriptor to close.
+        arch (:obj:`str`, optional): The target architecture.
+            Defaults to "amd64".
+
+    Returns:
+        The assembled shellcode, as a `bytes` object.
+    """
+    if arch == "amd64":
+        asm = "        movq $0x03, %rax;" \
+              "        movq ${},   %rdi;" \
+              "        syscall;".format(fd)
+    else:
+        asm = "        movq $0x06, %eax;" \
+              "        movq ${},   %ebx;" \
+              "        int $0x80;;".format(fd)
+    return assemble(asm, arch)
+
+
+# FIXME: Syscall number may be incorrect for i386.
+def mmap_shellcode(addr=0, size=0, prot=0, flags=0, fd=-1, off=0, arch="amd64"):
+    """Generates shellcode to map a region of memory.
+
+    Args:
+        addr (:obj:`int`, optional): The address, or 0 if unimportant.
+        size (:obj:`int`, optional): The desired size of the mapping.
+        prot (:obj:`int`, optional): The protections for the mapping.
+        flags (:obj:`int`, optional): Any other flags for the mapping.
+        fd (:obj:`int`, optional): A file descriptor to map.
+        off (:obj:`int`, optional): An offset in the file descriptor.
+        arch (:obj:`str`, optional): The target architecture.
+
+    Returns:
+        The assembled shellcode, as a `bytes` object.
+    """
+    if arch == "amd64":
+        asm = "        movq $0x09, %rax;" \
+              "        movq ${},   %rdi;" \
+              "        movq ${},   %rsi;" \
+              "        movq ${},   %rdx;" \
+              "        movq ${},   %r10;" \
+              "        movq ${},   %r8;" \
+              "        movq ${},   %r9;" \
+              "        syscall;".format(addr, size, prot, flags, fd, off)
+    else:
+        asm = "        movl $0x5a, %eax;" \
+              "        movl ${},   %ebx;" \
+              "        movl ${},   %ecx;" \
+              "        movl ${},   %edx;" \
+              "        movl ${},   %esi;" \
+              "        movl ${},   %edi;" \
+              "        movl ${},   %ebp;" \
+              "        int $0x80;".format(addr, size, prot, flags, fd, off)
+    return assemble(asm, arch)
+
+
+def munmap_shellcode(addr=0, size=0, arch="amd64"):
+    """Generates shellcode to map a region of memory.
+
+    Args:
+        addr (:obj:`int`, optional): The address of the mapping.
+        size (:obj:`int`, optional): The size of the mapping.
+        arch (:obj:`str`, optional): The target architecture.
+
+    Returns:
+        The assembled shellcode, as a `bytes` object.
+    """
+    if arch == "amd64":
+        asm = "        movq $0x0b, %rax;" \
+              "        movq ${},   %rdi;" \
+              "        movq ${},   %rsi;" \
+              "        syscall;".format(addr, size)
+    else:
+        asm = "        movl $0x5b, %eax;" \
+              "        movl ${},   %ebx;" \
+              "        movl ${},   %ecx;" \
+              "        int $0x80;".format(addr, size)
     return assemble(asm, arch)

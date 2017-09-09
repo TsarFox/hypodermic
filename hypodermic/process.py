@@ -361,9 +361,94 @@ class Process(object):
             fd = self.get_register("eax")
             self.set_register("eax", old_eax)
 
+        # FIXME: fd is parsed as a ctypes.c_ulonglong...
         if fd < 0:
             raise OSError("Couldn't open {}".format(path))
         return fd
+
+    def close(self, fd: int):
+        """Attempts to close a file descriptor within the inferior.
+
+        Args:
+            fd (int): The file descriptor to close.
+        """
+        if self.arch == "x64":
+            self.run_code(close_shellcode(fd))
+        else:
+            self.run_code(close_shellcode(fd, arch="i386"))
+
+    def mmap(self, addr=0, size=0, prot=0, flags=0, fd=-1, off=0) -> int:
+        """Introduce a new mapping to the process' address space.
+
+        Args:
+            addr (:obj:`int`, optional): The address, or 0 if
+                unimportant.
+            size (:obj:`int`, optional): The desired size of the
+                mapping.
+            prot (:obj:`int`, optional): The protections for the
+                mapping.
+            flags (:obj:`int`, optional): Any other flags for the
+                mapping.
+            fd (:obj:`int`, optional): A file descriptor to map.
+            off (:obj:`int`, optional): An offset in the file
+                descriptor.
+
+        Raises:
+            OSError: If the mapping cannot be made.
+
+        Returns:
+            The address the mapping was made at.
+        """
+        if self.arch == "x64":
+            old_rax = self.get_register("rax")
+            self.run_code(mmap_shellcode(addr, size, prot, flags, fd, off, path),
+                          preserve=["rax"])
+            res = self.get_register("rax")
+            self.set_register("rax", old_rax)
+        else:
+            old_eax = self.get_register("eax")
+            self.run_code(mmap_shellcode(addr, size, prot, flags, fd, off, path,
+                                         arch="i386"), preserve=["eax"])
+            res = self.get_register("eax")
+            self.set_register("eax", old_eax)
+
+        # FIXME: fd is parsed as a ctypes.c_ulonglong...
+        if res == -1:
+            raise OSError("Couldn't complete mapping.")
+        return res
+
+    def munmap(self, addr=0, size=0):
+        """Removes a mapping from the process' address space.
+
+        Args:
+            addr (:obj:`int`, optional): The address, or 0 if
+                unimportant.
+            size (:obj:`int`, optional): The desired size of the
+                mapping.
+        Raises:
+            OSError: If the mapping cannot be made.
+
+        Returns:
+            The address the mapping was made at.
+        """
+        if self.arch == "x64":
+            self.run_code(munmap_shellcode(addr, size))
+        else:
+            self.run_code(munmap_shellcode(addr, size, arch="i386"))
+
+    def page_start(self, addr: int) -> int:
+        return addr & ~(self.page_size - 1)
+
+    def page_offset(self, addr: int) -> int:
+        return addr & (self.page_size - 1)
+
+    def page_align(self, addr: int) -> int:
+        return (addr + self.page_size - 1) & ~(self.page_size - 1)
+
+    # FIXME: Not tested on i386.
+    @property
+    def page_size(self) -> int:
+        return 4096
 
     @property
     def arch(self) -> str:
@@ -380,11 +465,6 @@ class Process(object):
             "x64" and "x86" are supported.
         """
         return "x64" if self._isamd64 else "x86"
-
-    # FIXME: Not tested on i386.
-    @property
-    def page_size(self) -> int:
-        return 4096
 
     @property
     def maps(self) -> list:
