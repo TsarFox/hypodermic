@@ -46,6 +46,7 @@ stack in an attempt to trick the RTLD.
 * [Dynamic Loader Operation][8]
 * [About ELF Auxiliary Vectors][9]
 * [Code Injection into Running Linux Application][10]
+* [Special Sections][11]
 
 
 [1]: https://github.com/gaffe23/linux-inject
@@ -58,3 +59,4 @@ stack in an attempt to trick the RTLD.
 [8]: https://sourceware.org/glibc/wiki/DynamicLoader
 [9]: http://articles.manugarg.com/aboutelfauxiliaryvectors
 [10]: https://www.codeproject.com/Articles/33340/Code-Injection-into-Running-Linux-Application
+[11]: http://refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/specialsections.html

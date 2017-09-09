@@ -22,7 +22,7 @@ import os.path
 import re
 
 from hypodermic.memory import Region, maps
-from hypodermic.shellcode import assemble
+from hypodermic.shellcode import assemble, open_shellcode
 
 _AMD64_INDICES = {
     "r15": 0,
@@ -337,6 +337,33 @@ class Process(object):
             self._run_code_32(code, preserve)
         after = [self.get_register(reg) for reg in preserve]
         return before, after
+
+    def open(self, path: str) -> int:
+        """Attempts to open a file descriptor within the inferior.
+
+        Args:
+            path (str): The path of the file to open.
+
+        Raises:
+            OSError: If the path cannot be opened.
+
+        Returns:
+            The file descriptor.
+        """
+        if self.arch == "x64":
+            old_rax = self.get_register("rax")
+            self.run_code(open_shellcode(path), preserve=["rax"])
+            fd = self.get_register("rax")
+            self.set_register("rax", old_rax)
+        else:
+            old_eax = self.get_register("eax")
+            self.run_code(open_shellcode(path, arch="i386"), preserve=["eax"])
+            fd = self.get_register("eax")
+            self.set_register("eax", old_eax)
+
+        if fd < 0:
+            raise OSError("Couldn't open {}".format(path))
+        return fd
 
     @property
     def arch(self) -> str:

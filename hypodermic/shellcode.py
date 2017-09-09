@@ -39,3 +39,43 @@ def assemble(code: str, arch="amd64", syntax="att") -> bytes:
         ks.syntax = keystone.KS_OPT_SYNTAX_ATT
     encoded, _ = ks.asm(code)
     return bytes(encoded)
+
+
+# FIXME: Relative addressing is untested in i386.
+def open_shellcode(path: str, flags=0, arch="amd64") -> bytes:
+    """Generates shellcode to open a file descriptor.
+
+    Args:
+        path (str): The path of the file to open.
+        flags (:obj:`int`, optional): Flags to pass to open. Defaults to
+            O_RDONLY.
+        arch (:obj:`str`, optional): The target architecture.
+            Defaults to "amd64".
+
+    Returns:
+        The assembled shellcode, as a `bytes` object.
+    """
+    if arch == "amd64":
+        asm = "        jmp __path_end;" \
+              "__path:" \
+              "        .asciz \"{}\";" \
+              "__path_end:" \
+              "        movq $0x02,       %rax;" \
+              "        leaq (%rip),      %rdi;" \
+              "        subq $. - __path, %rdi;" \
+              "        movq ${},         %rsi;" \
+              "        movq $0x00,       %rdx;" \
+              "        syscall;".format(path, flags)
+    else:
+        asm = "        jmp __path_end;" \
+              "__path:" \
+              "        .asciz \"{}\";" \
+              "__path_end:" \
+              "        movl $0x05,   %eax;" \
+              "        call $. + 5;" \
+              "        popl %ebx;" \
+              "        subl $. - 4 - __path, %ebx;"
+              "        movl ${},     %ecx;" \
+              "        movl $0x00,   %edx;" \
+              "        int $0x80;".format(path, flags)
+    return assemble(asm, arch)
