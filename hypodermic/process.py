@@ -381,6 +381,11 @@ class Process(object):
         """
         return "x64" if self._isamd64 else "x86"
 
+    # FIXME: Not tested on i386.
+    @property
+    def page_size(self) -> int:
+        return 4096
+
     @property
     def maps(self) -> list:
         """Obtain the process' memory map.
