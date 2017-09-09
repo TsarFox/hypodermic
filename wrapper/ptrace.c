@@ -19,9 +19,12 @@
 
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/user.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 
 #include <stddef.h>
+#include <string.h>
 #include <unistd.h>
 
 
@@ -78,9 +81,71 @@ int cont(int pid) {
         return -1;
     }
 
+    waitpid(pid, &s, WNOHANG);
+    return 0;
+}
+
+
+int step(int pid) {
+    int s;
+
+    if ((ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL)) < 0) {
+        return -1;
+    }
+
     while (!WIFSTOPPED(s)) {
         waitpid(pid, &s, WNOHANG);
     }
 
     return 0;
 }
+
+
+/* TODO: As of now, Hypodermis is strongly tied to the Intel x86
+   family of processors. This should really be expanded. */
+int is_amd64(void) {
+    struct utsname ub;
+
+    uname(&ub);
+
+    return !strcmp(ub.machine, "x86_64");
+}
+
+
+#ifdef __x86_64__
+unsigned long long getreg(int pid, int idx) {
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+    return ((unsigned long long *) &regs)[idx];
+}
+
+void setreg(int pid, int idx, unsigned long long value) {
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+    ((unsigned long long *) &regs)[idx] = value;
+
+    ptrace(PTRACE_SETREGS, pid, NULL, &regs);
+}
+#else
+unsigned long getreg(int pid, int idx) {
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+    return ((unsigned long *) &regs)[idx];
+}
+
+void setreg(int pid, int idx, unsigned long value) {
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+    ((unsigned long *) &regs)[idx] = value;
+
+    ptrace(PTRACE_SETREGS, pid, NULL, &regs);
+}
+#endif

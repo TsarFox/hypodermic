@@ -14,11 +14,14 @@ redirected. There have been a few attempts at this in the past, such as
 This is oftentimes unsuccessful, being very dependent upon how glibc was
 compiled.
 
-The goal of Hypodermic is to find a means of injecting a dynamic library into
-any Linux executable, even ones that are statically-linked, and tranferring this
-method over to [PINCE][2] when it is stable enough.
+The point of Hypodermic is to find a means of injecting a dynamic library into
+any Linux executable, even ones that are statically-linked, and transferring
+this method over to [PINCE][2] when it is stable enough. The current goal is the
+ability to inject an internal cheat into Counter-Strike: Global Offensive, such
+as [AimTux][3]. This will signal that the method has reached a point of
+viability.
 
-Hypodermic is free software, licensed under the [GNU General Public License.][3]
+Hypodermic is free software, licensed under the [GNU General Public License.][4]
 
 
 ## Current Attempts
@@ -37,20 +40,21 @@ stack in an attempt to trick the RTLD.
 
 ## Important Resources
 
-* [Understanding Linux ELF RTLD internals][4]
-* [Runtime Process Infection][5]
-* [ELF Program Header][6]
-* [Dynamic Loader Operation][7]
-* [About ELF Auxiliary Vectors][8]
-* [Code Injection into Running Linux Application][9]
+* [Understanding Linux ELF RTLD internals][5]
+* [Runtime Process Infection][6]
+* [ELF Program Header][7]
+* [Dynamic Loader Operation][8]
+* [About ELF Auxiliary Vectors][9]
+* [Code Injection into Running Linux Application][10]
 
 
 [1]: https://github.com/gaffe23/linux-inject
 [2]: https://github.com/korcankaraokcu/PINCE
-[3]: https://www.gnu.org/licenses/gpl.html
-[4]: http://s.eresi-project.org/inc/articles/elf-rtld.txt
-[5]: http://phrack.org/issues/59/8.html
-[6]: http://www.sco.com/developers/gabi/latest/ch5.pheader.html
-[7]: https://sourceware.org/glibc/wiki/DynamicLoader
-[8]: http://articles.manugarg.com/aboutelfauxiliaryvectors
-[9]: https://www.codeproject.com/Articles/33340/Code-Injection-into-Running-Linux-Application
+[3]: https://github.com/AimTuxOfficial/AimTux/
+[4]: https://www.gnu.org/licenses/gpl.html
+[5]: http://s.eresi-project.org/inc/articles/elf-rtld.txt
+[6]: http://phrack.org/issues/59/8.html
+[7]: http://www.sco.com/developers/gabi/latest/ch5.pheader.html
+[8]: https://sourceware.org/glibc/wiki/DynamicLoader
+[9]: http://articles.manugarg.com/aboutelfauxiliaryvectors
+[10]: https://www.codeproject.com/Articles/33340/Code-Injection-into-Running-Linux-Application
