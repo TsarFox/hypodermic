@@ -108,8 +108,8 @@ def main():
     if args.create:
         alert("Creating process at path '{}'...".format(args.create))
         p = Process(path=args.create)
-        p.continue_until_haulted()
     else:
         alert("Attaching to process with pid {}...".format(args.attach))
         p = Process(pid=args.attach)
-        p.continue_until_haulted()
+    print(p.dlopen("/usr/lib/libyggdrasil.so"))
+    p.continue_until_haulted()

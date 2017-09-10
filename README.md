@@ -33,10 +33,9 @@ routines. This did not work, as the process of loading an ELF library into
 memory is far more complicated than calling mmap(2) on the file.
 
 The second iteration also involves injecting code into the inferior process, but
-instead maps the Linux runtime linker into memory. This is difficult, as it
-means mapping it the way the kernel would. This involves injecting auxiliary
-vectors onto the stack in an attempt to trick it into loading the desired
-libraries.
+instead maps the Linux runtime linker into memory, if it is not already there,
+and utilizes the internal _dl_open routine. This is difficult, as it means
+mapping it the way the kernel would to ensure proper initialization of the RTLD.
 
 
 ## Important Resources

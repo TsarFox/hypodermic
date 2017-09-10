@@ -18,11 +18,16 @@
 """ctypes wrapper for ptrace."""
 
 import ctypes
-import os.path
+import os
 import re
 
+from elftools.elf.elffile import ELFFile
+from elftools.elf.sections import SymbolTableSection
+
 from hypodermic.memory import Region, maps
-from hypodermic.shellcode import assemble, open_shellcode
+from hypodermic.shellcode import (assemble, close_shellcode, dlopen_shellcode,
+                                  mmap_shellcode, munmap_shellcode,
+                                  open_shellcode)
 
 _AMD64_INDICES = {
     "r15": 0,
@@ -436,6 +441,35 @@ class Process(object):
         else:
             self.run_code(munmap_shellcode(addr, size, arch="i386"))
 
+    def dlopen(self, path: str) -> int:
+        """Maps a shared object into the process address space.
+
+        Args:
+            path (str): The path of the shared object to inject.
+
+        Raises:
+            OSError: If the process does not have a usable RTLD.
+
+        Returns:
+            The address at which the library was loaded.
+        """
+        if not self.rtld:
+            raise OSError("Process does not have a usable RTLD")
+
+        if self.arch == "x64":
+            old_rax = self.get_register("rax")
+            self.run_code(dlopen_shellcode(self.rtld_dl_open_addr, path),
+                          preserve=["rax"])
+            addr = self.get_register("rax")
+            self.set_register("rax", old_rax)
+        else:
+            old_eax = self.get_register("eax")
+            self.run_code(dlopen_shellcode(self.rtld_dl_open_addr, path,
+                                           arch="i386"), preserve=["eax"])
+            addr = self.get_register("eax")
+            self.set_register("eax", old_eax)
+        return addr
+
     def page_start(self, addr: int) -> int:
         return addr & ~(self.page_size - 1)
 
@@ -467,6 +501,32 @@ class Process(object):
         return "x64" if self._isamd64 else "x86"
 
     @property
+    def rtld_dl_open_addr(self) -> int:
+        """Obtain the absolute address of _dl_open in main memory.
+
+        Raises:
+            OSError: If either the process has no instance of the RTLD,
+                or the RTLD lacks sufficient symbols.
+
+        Returns:
+            An integer containing the address.
+        """
+        if self.rtld is None:
+            raise OSError("Process has no RTLD instance")
+
+        with open(self.rtld.path, "rb") as rtld:
+            elf = ELFFile(rtld)
+            symtab = elf.get_section_by_name(".symtab")
+
+            if not isinstance(symtab, SymbolTableSection):
+                raise OSError("RTLD has no usable symbol table")
+
+            res = symtab.get_symbol_by_name("_dl_open")
+            if len(res) < 1:
+                raise OSError("RTLD has no _dl_open symbol")
+            return self.rtld.start + res[0].entry.st_value
+
+    @property
     def maps(self) -> list:
         """Obtain the process' memory map.
 
@@ -474,6 +534,16 @@ class Process(object):
             A list of Region objects.
         """
         return maps(self.pid)
+
+    # TODO: Return something more detailed than the list of open fds.
+    @property
+    def fds(self) -> list:
+        """Obtain currently open file descriptors for the process.
+
+        Returns:
+            A list of integer file descriptors.
+        """
+        return [int(fd) for fd in os.listdir("/proc/{}/fd/".format(self.pid))]
 
     @property
     def rtld(self) -> Region:

@@ -162,3 +162,47 @@ def munmap_shellcode(addr=0, size=0, arch="amd64"):
               "        movl ${},   %ecx;" \
               "        int $0x80;".format(addr, size)
     return assemble(asm, arch)
+
+
+# FIXME: Relative addressing is untested in i386.
+def dlopen_shellcode(addr: int, path: str, arch="amd64"):
+    """Generates shellcode to invoke _dl_open in the RTLD.
+
+    Args:
+        addr (int): The absolute address of _dl_open.
+        path (str): The path of the library to open.
+
+    Returns:
+        The assembled shellcode, as a `bytes` object.
+    """
+    if arch == "amd64":
+        asm = "        jmp __path_end;" \
+              "__path:" \
+              "        .asciz \"{}\";" \
+              "__path_end:" \
+              "        leaq (%rip),      %rdi;" \
+              "        subq $. - __path, %rdi;" \
+              "        movq $0x80000101, %rsi;" \
+              "        movq $0x00,       %rdx;" \
+              "        movq $0x00,       %rcx;" \
+              "        movq $0x00,       %r8;" \
+              "        movq $0x00,       %r9;" \
+              "        pushq $0x00;" \
+              "        callq ${};".format(path, addr)
+    else:
+        asm = "        jmp __path_end;" \
+              "__path:" \
+              "        .asciz \"{}\";" \
+              "__path_end:" \
+              "        call $. + 5;" \
+              "        popl %ebx;" \
+              "        subl $. - 4 - __path, %ebx;" \
+              "        pushl %ebx;" \
+              "        pushl $0x80000101;" \
+              "        pushl $0x00;" \
+              "        pushl $0x00;" \
+              "        pushl $0x00;" \
+              "        pushl $0x00;" \
+              "        pushl $0x00;" \
+              "        calll ${};".format(path, addr)
+    return assemble(asm, arch)
