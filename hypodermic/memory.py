@@ -48,7 +48,7 @@ def parse_device(line: str) -> Device:
         The parsed Device object.
     """
     major, minor = line.split(':')
-    return Device(major, minor)
+    return Device(int(major), int(minor))
 
 
 def parse_perms(line: str) -> Perms:

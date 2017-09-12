@@ -111,5 +111,4 @@ def main():
     else:
         alert("Attaching to process with pid {}...".format(args.attach))
         p = Process(pid=args.attach)
-    print(p.dlopen("/usr/lib/libyggdrasil.so"))
     p.continue_until_haulted()
