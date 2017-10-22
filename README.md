@@ -14,9 +14,9 @@ redirected. There have been a few attempts at this in the past, such as
 This is oftentimes unsuccessful, being very dependent upon how glibc was
 compiled.
 
-The point of Hypodermic is to find a means of injecting a dynamic library into
+The purpose of Hypodermic is to find a means of injecting a dynamic library into
 any Linux executable, even ones that are statically-linked, and transferring
-this method over to [PINCE][2] when it is stable enough. The current goal is the
+this code into [PINCE][2] when it becomes stable enough. The current goal is the
 ability to inject an internal cheat into Counter-Strike: Global Offensive, such
 as [AimTux][3]. This will signal that the method has reached a point of
 viability.
@@ -33,9 +33,9 @@ routines. This did not work, as the process of loading an ELF library into
 memory is far more complicated than calling mmap(2) on the file.
 
 The second iteration also involves injecting code into the inferior process, but
-instead maps the Linux runtime linker into memory, if it is not already there,
-and utilizes the internal _dl_open routine. This is difficult, as it means
-mapping it the way the kernel would to ensure proper initialization of the RTLD.
+it instead maps the Linux runtime linker into memory, if it is not already
+there, and utilizes the internal `_dl_open` routine. This is difficult, as it
+requires mapping it the way the kernel would to ensure proper initialization.
 
 
 ## Important Resources

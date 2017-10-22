@@ -456,19 +456,70 @@ class Process(object):
         if not self.rtld:
             raise OSError("Process does not have a usable RTLD")
 
+        self.path_caller_check()
         if self.arch == "x64":
+            ret = self.get_register("rip")
             old_rax = self.get_register("rax")
-            self.run_code(dlopen_shellcode(self.rtld_dl_open_addr, path),
-                          preserve=["rax"])
+            shellcode = dlopen_shellcode(self.rtld_dlsym("_dl_open"), ret, path)
+            self.run_code(shellcode, preserve=["rax"])
             addr = self.get_register("rax")
             self.set_register("rax", old_rax)
         else:
+            ret = self.get_register("eip")
             old_eax = self.get_register("eax")
-            self.run_code(dlopen_shellcode(self.rtld_dl_open_addr, path,
-                                           arch="i386"), preserve=["eax"])
+            shellcode = dlopen_shellcode(self.rtld_dlsym("_dl_open"), ret, path,
+                                         arch="i386")
+            self.run_code(shellcode, preserve=["eax"])
             addr = self.get_register("eax")
             self.set_register("eax", old_eax)
         return addr
+
+    def patch_caller_check(self):
+        """Patches out a caller check security measure in the RTLD.
+
+        Note:
+            This is requried before making any invocations to `dlopen`.
+
+        Raises:
+            OSError: If the process either has no RTLD, or the caller
+                check cannot be found.
+        """
+        if not self.rtld:
+            raise OSError("Process does not have a usable RTLD")
+
+        if self.arch == "x64":
+            caller_check = self.rtld_dlsym("_dl_check_caller")
+            shellcode = assemble("movq $0x00, %rax; ret;")
+            self.write_bytes(caller_check, shellcode)
+        else:
+            caller_check = self.rtld_dlsym("_dl_check_caller")
+            shellcode = assemble("movl $0x00, %eax; ret;")
+            self.write_bytes(caller_check, shellcode)
+
+    def rtld_dlsym(self, sym: str) -> int:
+        """Obtain the absolute address of an RTLD symbol in main memory.
+
+        Raises:
+            OSError: If either the process has no instance of the RTLD,
+                or the RTLD lacks sufficient symbols.
+
+        Returns:
+            An integer containing the address.
+        """
+        if self.rtld is None:
+            raise OSError("Process has no RTLD instance")
+
+        with open(self.rtld.path, "rb") as rtld:
+            elf = ELFFile(rtld)
+            symtab = elf.get_section_by_name(".symtab")
+
+            if not isinstance(symtab, SymbolTableSection):
+                raise OSError("RTLD has no usable symbol table")
+
+            res = symtab.get_symbol_by_name(sym)
+            if len(res) < 1:
+                raise OSError("RTLD has no {} symbol".format(sym))
+            return self.rtld.start + res[0].entry.st_value
 
     def page_start(self, addr: int) -> int:
         return addr & ~(self.page_size - 1)
@@ -499,32 +550,6 @@ class Process(object):
             "x64" and "x86" are supported.
         """
         return "x64" if self._isamd64 else "x86"
-
-    @property
-    def rtld_dl_open_addr(self) -> int:
-        """Obtain the absolute address of _dl_open in main memory.
-
-        Raises:
-            OSError: If either the process has no instance of the RTLD,
-                or the RTLD lacks sufficient symbols.
-
-        Returns:
-            An integer containing the address.
-        """
-        if self.rtld is None:
-            raise OSError("Process has no RTLD instance")
-
-        with open(self.rtld.path, "rb") as rtld:
-            elf = ELFFile(rtld)
-            symtab = elf.get_section_by_name(".symtab")
-
-            if not isinstance(symtab, SymbolTableSection):
-                raise OSError("RTLD has no usable symbol table")
-
-            res = symtab.get_symbol_by_name("_dl_open")
-            if len(res) < 1:
-                raise OSError("RTLD has no _dl_open symbol")
-            return self.rtld.start + res[0].entry.st_value
 
     @property
     def maps(self) -> list:
